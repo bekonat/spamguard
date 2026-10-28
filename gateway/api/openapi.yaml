@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: spamguard gateway
+  version: 1.0.0
+  description: Spam classification API in front of an ML model service.
+paths:
+  /api/v1/classify:
+    post:
+      summary: Classify one message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  maxLength: 2000
+                  example: "Ваша карта заблокирована, подтвердите данные по ссылке kaspi-verify.top"
+      responses:
+        "200":
+          description: Verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verdict"
+        "400":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+  /api/v1/classify/batch:
+    post:
+      summary: Classify up to 100 messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [texts]
+              properties:
+                texts:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Verdicts in the order of the input texts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Verdict"
+        "400":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: The process is alive
+  /readyz:
+    get:
+      summary: Readiness probe, checks that the model service responds
+      responses:
+        "200":
+          description: Ready
+        "503":
+          $ref: "#/components/responses/Error"
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        "200":
+          description: Metrics in the Prometheus text format
+components:
+  schemas:
+    Verdict:
+      type: object
+      properties:
+        label:
+          type: string
+          enum: [spam, ham]
+        spam_probability:
+          type: number
+          format: double
+          example: 0.9731
+        model_version:
+          type: string
+          example: "20261028-170643"
+        cached:
+          type: boolean
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        field:
+          type: string
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spamguard-model
+  labels:
+    app: spamguard-model
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spamguard-model
+  template:
+    metadata:
+      labels:
+        app: spamguard-model
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: model
+          image: ghcr.io/bekonat/spamguard-model:latest
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spamguard-model
+spec:
+  selector:
+    app: spamguard-model
+  ports:
+    - port: 8000
+      targetPort: 8000

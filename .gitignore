@@ -1,0 +1,6 @@
+bin/
+coverage.out
+__pycache__/
+.pytest_cache/
+.venv/
+model/artifacts/
